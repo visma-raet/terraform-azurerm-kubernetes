@@ -27,6 +27,14 @@ repos:
         language: script
         entry: hooks/git-dirty
 
+      - id: require-ascii
+        name: file encoding (local)
+        description: Ensure file is ascii-encoded
+        entry: hooks/require-ascii.py
+        language: python
+        types: [text]
+        exclude: ^ci/ansi$  # 3rd-party script
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.4.0
     hooks:
