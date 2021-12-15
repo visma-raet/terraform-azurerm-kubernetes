@@ -330,3 +330,15 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "kubelet_log_max_line" {
+  description = "Kubelet config: maximum number of container log files that can be present for a container"
+  type        = number
+  default     = 2
+}
+
+variable "kubelet_log_max_size_mb" {
+  description = "Kubelet config: Specifies the maximum size in MB of container log file before it is rotated"
+  type        = number
+  default     = 10
+}
