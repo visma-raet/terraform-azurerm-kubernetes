@@ -59,8 +59,8 @@ resource "azurerm_kubernetes_cluster" "main" {
     for_each = var.enable_auto_scaling == true ? [] : ["default_node_pool_manually_scaled"]
     content {
       kubelet_config {
-        container_log_max_line     = var.kubelet_log_max_line
-        container_log_max_size_mb  = var.kubelet_log_max_size_mb
+        container_log_max_line    = var.kubelet_log_max_line
+        container_log_max_size_mb = var.kubelet_log_max_size_mb
       }
       name                         = var.node_pool_name
       node_count                   = var.node_count
@@ -82,8 +82,8 @@ resource "azurerm_kubernetes_cluster" "main" {
     for_each = var.enable_auto_scaling == true ? ["default_node_pool_auto_scaled"] : []
     content {
       kubelet_config {
-        container_log_max_line     = var.kubelet_log_max_line
-        container_log_max_size_mb  = var.kubelet_log_max_size_mb
+        container_log_max_line    = var.kubelet_log_max_line
+        container_log_max_size_mb = var.kubelet_log_max_size_mb
       }
       name                         = var.node_pool_name
       vm_size                      = var.default_vm_size
