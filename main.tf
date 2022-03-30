@@ -132,8 +132,6 @@ resource "azurerm_kubernetes_cluster" "main" {
     network_policy    = var.network_policy
   }
 
-
-
   dynamic "azure_active_directory_role_based_access_control" {
     for_each = var.enable_role_based_access_control && var.rbac_aad_managed ? ["rbac"] : []
     content {
