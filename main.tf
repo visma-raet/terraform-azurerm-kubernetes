@@ -71,7 +71,7 @@ resource "azurerm_kubernetes_cluster" "main" {
       enable_auto_scaling          = var.enable_auto_scaling
       max_count                    = null
       min_count                    = null
-      zones                        = var.availability_zones
+      availability_zones           = var.availability_zones
       max_pods                     = var.max_default_pod_count
       type                         = "VirtualMachineScaleSets"
       only_critical_addons_enabled = var.system_only
@@ -93,7 +93,7 @@ resource "azurerm_kubernetes_cluster" "main" {
       enable_auto_scaling          = var.enable_auto_scaling
       max_count                    = var.max_default_node_count
       min_count                    = var.min_default_node_count
-      zones                        = var.availability_zones
+      availability_zones           = var.availability_zones
       max_pods                     = var.max_default_pod_count
       type                         = "VirtualMachineScaleSets"
       only_critical_addons_enabled = var.system_only
@@ -108,13 +108,24 @@ resource "azurerm_kubernetes_cluster" "main" {
     }
   }
 
-  http_application_routing_enabled = false
-
-  dynamic "ingress_application_gateway" {
-    for_each = (var.create_ingress && var.gateway_id != null) ? [true] : []
-    content {
-      gateway_id = var.gateway_id
+  addon_profile {
+    oms_agent {
+      enabled                    = var.oms_agent_enabled
+      log_analytics_workspace_id = var.oms_agent_enabled ? data.azurerm_log_analytics_workspace.main[0].id : null
     }
+
+    http_application_routing {
+      enabled = false
+    }
+
+    dynamic "ingress_application_gateway" {
+      for_each = (var.create_ingress && var.gateway_id != null) ? [true] : []
+      content {
+        enabled    = var.create_ingress
+        gateway_id = var.gateway_id
+      }
+    }
+
   }
 
   identity {
@@ -128,15 +139,18 @@ resource "azurerm_kubernetes_cluster" "main" {
     network_policy    = var.network_policy
   }
 
-  dynamic "azure_active_directory_role_based_access_control" {
-    for_each = var.enable_role_based_access_control && var.rbac_aad_managed ? ["rbac"] : []
-    content {
-      managed                = true
-      admin_group_object_ids = length(var.rbac_aad_admin_group) == 0 ? var.rbac_aad_admin_group : data.azuread_group.main[*].id
-      azure_rbac_enabled     = var.azure_rbac_enabled
+  role_based_access_control {
+    enabled = var.enable_role_based_access_control
+
+    dynamic "azure_active_directory" {
+      for_each = var.enable_role_based_access_control && var.rbac_aad_managed ? ["rbac"] : []
+      content {
+        managed                = true
+        admin_group_object_ids = length(var.rbac_aad_admin_group) == 0 ? var.rbac_aad_admin_group : data.azuread_group.main[*].id
+        azure_rbac_enabled     = var.azure_rbac_enabled
+      }
     }
   }
-
 
   tags = merge({ "ResourceName" = lower(var.name) }, var.tags, )
 
@@ -160,7 +174,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "windows" {
   enable_auto_scaling   = var.enable_windows_auto_scaling
   max_count             = var.enable_windows_auto_scaling ? var.max_default_windows_node_count : null
   min_count             = var.enable_windows_auto_scaling ? var.min_default_windows_node_count : null
-  zones                 = var.availability_zones
+  availability_zones    = var.availability_zones
   max_pods              = var.max_default_windows_pod_count
   node_taints           = ["os=windows:NoSchedule"]
   os_type               = "Windows"
@@ -178,8 +192,15 @@ resource "azurerm_kubernetes_cluster_node_pool" "system" {
   enable_auto_scaling   = var.enable_system_auto_scaling
   max_count             = var.enable_system_auto_scaling ? var.max_default_system_node_count : null
   min_count             = var.enable_system_auto_scaling ? var.min_default_system_node_count : null
-  zones                 = var.availability_zones
+  availability_zones    = var.availability_zones
   max_pods              = var.max_default_system_pod_count
   node_taints           = ["CriticalAddonsOnly=true:NoSchedule"]
   mode                  = "System"
+}
+
+
+data "azurerm_log_analytics_workspace" "main" {
+  count               = var.oms_agent_enabled ? 1 : 0
+  name                = var.log_analytics_workspace_name
+  resource_group_name = var.log_analytics_resource_group
 }
