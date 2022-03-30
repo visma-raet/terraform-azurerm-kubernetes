@@ -108,7 +108,7 @@ resource "azurerm_kubernetes_cluster" "main" {
     }
   }
 
-  http_application_routing_enabled  = false
+  http_application_routing_enabled = false
 
   dynamic "ingress_application_gateway" {
     for_each = (var.create_ingress && var.gateway_id != null) ? [true] : []
