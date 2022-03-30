@@ -116,7 +116,7 @@ variable "system_only" {
 variable "oms_agent_enabled" {
   description = "Deploy the OMS Agent to this Kubernetes Cluster"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "log_analytics_workspace_name" {
@@ -158,7 +158,7 @@ variable "vnet_subnet_id" {
 variable "load_balancer_sku" {
   description = "(Optional) Specifies the SKU of the Load Balancer used for this Kubernetes Cluster. Possible values are Basic and Standard. Defaults to Standard."
   type        = string
-  default     = "Standard"
+  default     = "standard"
 }
 
 variable "os_disk_size_gb" {
