@@ -113,24 +113,6 @@ variable "system_only" {
   default     = false
 }
 
-variable "oms_agent_enabled" {
-  description = "Deploy the OMS Agent to this Kubernetes Cluster"
-  type        = bool
-  default     = false
-}
-
-variable "log_analytics_workspace_name" {
-  description = "(Optional) The name of the Analytics workspace"
-  type        = string
-  default     = null
-}
-
-variable "log_analytics_resource_group" {
-  description = "The resource group name of the Analytics workspace"
-  type        = string
-  default     = null
-}
-
 variable "log_retention_in_days" {
   description = "The retention period for the logs in days. The expected value should be between 30 to 730"
   type        = number

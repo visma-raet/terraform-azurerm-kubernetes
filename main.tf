@@ -108,10 +108,6 @@ resource "azurerm_kubernetes_cluster" "main" {
     }
   }
 
-  oms_agent {
-    log_analytics_workspace_id = var.oms_agent_enabled ? data.azurerm_log_analytics_workspace.main.id : null
-  }
-
   http_application_routing_enabled  = false
 
   dynamic "ingress_application_gateway" {
@@ -186,11 +182,4 @@ resource "azurerm_kubernetes_cluster_node_pool" "system" {
   max_pods              = var.max_default_system_pod_count
   node_taints           = ["CriticalAddonsOnly=true:NoSchedule"]
   mode                  = "System"
-}
-
-
-data "azurerm_log_analytics_workspace" "main" {
-  count               = var.oms_agent_enabled ? 1 : 0
-  name                = var.log_analytics_workspace_name
-  resource_group_name = var.log_analytics_resource_group
 }
