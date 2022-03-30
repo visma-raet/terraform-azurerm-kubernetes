@@ -71,7 +71,7 @@ resource "azurerm_kubernetes_cluster" "main" {
       enable_auto_scaling          = var.enable_auto_scaling
       max_count                    = null
       min_count                    = null
-      availability_zones           = var.availability_zones
+      zones                        = var.availability_zones
       max_pods                     = var.max_default_pod_count
       type                         = "VirtualMachineScaleSets"
       only_critical_addons_enabled = var.system_only
@@ -93,7 +93,7 @@ resource "azurerm_kubernetes_cluster" "main" {
       enable_auto_scaling          = var.enable_auto_scaling
       max_count                    = var.max_default_node_count
       min_count                    = var.min_default_node_count
-      availability_zones           = var.availability_zones
+      zones                        = var.availability_zones
       max_pods                     = var.max_default_pod_count
       type                         = "VirtualMachineScaleSets"
       only_critical_addons_enabled = var.system_only
@@ -108,24 +108,21 @@ resource "azurerm_kubernetes_cluster" "main" {
     }
   }
 
-  addon_profile {
-    oms_agent {
-      enabled                    = var.oms_agent_enabled
-      log_analytics_workspace_id = var.oms_agent_enabled ? data.azurerm_log_analytics_workspace.main[0].id : null
-    }
+  oms_agent {
+    enabled                    = var.oms_agent_enabled
+    log_analytics_workspace_id = var.oms_agent_enabled ? data.azurerm_log_analytics_workspace.main[0].id : null
+  }
 
-    http_application_routing {
-      enabled = false
-    }
+  http_application_routing {
+    enabled = false
+  }
 
-    dynamic "ingress_application_gateway" {
-      for_each = (var.create_ingress && var.gateway_id != null) ? [true] : []
-      content {
-        enabled    = var.create_ingress
-        gateway_id = var.gateway_id
-      }
+  dynamic "ingress_application_gateway" {
+    for_each = (var.create_ingress && var.gateway_id != null) ? [true] : []
+    content {
+    enabled    = var.create_ingress
+    gateway_id = var.gateway_id
     }
-
   }
 
   identity {
@@ -139,7 +136,7 @@ resource "azurerm_kubernetes_cluster" "main" {
     network_policy    = var.network_policy
   }
 
-  role_based_access_control {
+  azure_active_directory_role_based_access_control {
     enabled = var.enable_role_based_access_control
 
     dynamic "azure_active_directory" {
@@ -174,7 +171,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "windows" {
   enable_auto_scaling   = var.enable_windows_auto_scaling
   max_count             = var.enable_windows_auto_scaling ? var.max_default_windows_node_count : null
   min_count             = var.enable_windows_auto_scaling ? var.min_default_windows_node_count : null
-  availability_zones    = var.availability_zones
+  zones                 = var.availability_zones
   max_pods              = var.max_default_windows_pod_count
   node_taints           = ["os=windows:NoSchedule"]
   os_type               = "Windows"
@@ -192,7 +189,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "system" {
   enable_auto_scaling   = var.enable_system_auto_scaling
   max_count             = var.enable_system_auto_scaling ? var.max_default_system_node_count : null
   min_count             = var.enable_system_auto_scaling ? var.min_default_system_node_count : null
-  availability_zones    = var.availability_zones
+  zones                 = var.availability_zones
   max_pods              = var.max_default_system_pod_count
   node_taints           = ["CriticalAddonsOnly=true:NoSchedule"]
   mode                  = "System"
