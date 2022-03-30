@@ -109,7 +109,7 @@ resource "azurerm_kubernetes_cluster" "main" {
   }
 
   oms_agent {
-    log_analytics_workspace_id = var.oms_agent_enabled ? data.azurerm_log_analytics_workspace.main[0].id : null
+    log_analytics_workspace_id = var.oms_agent_enabled ? data.azurerm_log_analytics_workspace.main.id : null
   }
 
   http_application_routing_enabled  = false
