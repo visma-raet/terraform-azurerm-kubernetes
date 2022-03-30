@@ -109,19 +109,15 @@ resource "azurerm_kubernetes_cluster" "main" {
   }
 
   oms_agent {
-    enabled                    = var.oms_agent_enabled
     log_analytics_workspace_id = var.oms_agent_enabled ? data.azurerm_log_analytics_workspace.main[0].id : null
   }
 
-  http_application_routing {
-    enabled = false
-  }
+  http_application_routing_enabled  = false
 
   dynamic "ingress_application_gateway" {
     for_each = (var.create_ingress && var.gateway_id != null) ? [true] : []
     content {
-    enabled    = var.create_ingress
-    gateway_id = var.gateway_id
+      gateway_id = var.gateway_id
     }
   }
 
@@ -137,7 +133,6 @@ resource "azurerm_kubernetes_cluster" "main" {
   }
 
   azure_active_directory_role_based_access_control {
-    enabled = var.enable_role_based_access_control
 
     dynamic "azure_active_directory" {
       for_each = var.enable_role_based_access_control && var.rbac_aad_managed ? ["rbac"] : []
