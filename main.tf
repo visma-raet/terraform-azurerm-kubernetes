@@ -17,7 +17,7 @@ data "azurerm_resource_group" "rgrp" {
 }
 
 resource "azurerm_resource_group" "rg" {
-  #ts:skip=accurics.azure.NS.272 RSG lock should be skipped for now.
+  #ts:skip=AC_AZURE_0389 RSG lock should be skipped for now.
   count    = var.create_resource_group ? 1 : 0
   name     = lower(var.resource_group_name)
   location = var.location
@@ -133,7 +133,7 @@ resource "azurerm_kubernetes_cluster" "main" {
   }
 
   network_profile {
-    #ts:skip=accurics.azure.NS.382 This rule should be skipped for now.
+    #ts:skip=AC_AZURE_0158 This rule should be skipped for now.
     load_balancer_sku = length(var.availability_zones) == 0 && var.windows_node_pool_enabled == false ? var.load_balancer_sku : "Standard"
     network_plugin    = var.windows_node_pool_enabled ? "azure" : var.network_plugin
     network_policy    = var.network_policy
