@@ -25,6 +25,26 @@ resource "azurerm_resource_group" "rg" {
 }
 
 #---------------------------------------------------------
+# Log analytics workspace
+#---------------------------------------------------------
+
+resource "azurerm_resource_group" "rg_la" {
+  #ts:skip=AC_AZURE_0389 RSG lock should be skipped for now.
+  name     = lower(var.log_analytics_resource_group)
+  location = var.location
+  tags     = merge({ "ResourceName" = format("%s", var.log_analytics_resource_group) }, var.tags, )
+}
+
+resource "azurerm_log_analytics_workspace" "main" {
+  #ts:skip=AC_AZURE_0389 RSG lock should be skipped for now.
+  name                = var.log_analytics_workspace_name
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg_la.name
+  sku                 = var.log_analytics_workspace_sku
+  retention_in_days   = var.log_retention_in_days
+}
+
+#---------------------------------------------------------
 # SSH Key Creation or selection
 #---------------------------------------------------------
 
@@ -71,7 +91,7 @@ resource "azurerm_kubernetes_cluster" "main" {
       enable_auto_scaling          = var.enable_auto_scaling
       max_count                    = null
       min_count                    = null
-      availability_zones           = var.availability_zones
+      zones                        = var.availability_zones
       max_pods                     = var.max_default_pod_count
       type                         = "VirtualMachineScaleSets"
       only_critical_addons_enabled = var.system_only
@@ -108,24 +128,17 @@ resource "azurerm_kubernetes_cluster" "main" {
     }
   }
 
-  addon_profile {
-    oms_agent {
-      enabled                    = var.oms_agent_enabled
-      log_analytics_workspace_id = var.oms_agent_enabled ? data.azurerm_log_analytics_workspace.main[0].id : null
-    }
+  oms_agent {
+    log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  }
 
-    http_application_routing {
-      enabled = false
-    }
+  http_application_routing_enabled = false
 
-    dynamic "ingress_application_gateway" {
-      for_each = (var.create_ingress && var.gateway_id != null) ? [true] : []
-      content {
-        enabled    = var.create_ingress
-        gateway_id = var.gateway_id
-      }
+  dynamic "ingress_application_gateway" {
+    for_each = (var.create_ingress && var.gateway_id != null) ? [true] : []
+    content {
+      gateway_id = var.gateway_id
     }
-
   }
 
   identity {
@@ -134,21 +147,19 @@ resource "azurerm_kubernetes_cluster" "main" {
 
   network_profile {
     #ts:skip=AC_AZURE_0158 This rule should be skipped for now.
-    load_balancer_sku = length(var.availability_zones) == 0 && var.windows_node_pool_enabled == false ? var.load_balancer_sku : "Standard"
+    load_balancer_sku = length(var.availability_zones) == 0 && var.windows_node_pool_enabled == false ? var.load_balancer_sku : "standard"
     network_plugin    = var.windows_node_pool_enabled ? "azure" : var.network_plugin
     network_policy    = var.network_policy
   }
 
-  role_based_access_control {
-    enabled = var.enable_role_based_access_control
+  role_based_access_control_enabled = var.enable_role_based_access_control
 
-    dynamic "azure_active_directory" {
-      for_each = var.enable_role_based_access_control && var.rbac_aad_managed ? ["rbac"] : []
-      content {
-        managed                = true
-        admin_group_object_ids = length(var.rbac_aad_admin_group) == 0 ? var.rbac_aad_admin_group : data.azuread_group.main[*].id
-        azure_rbac_enabled     = var.azure_rbac_enabled
-      }
+  dynamic "azure_active_directory_role_based_access_control" {
+    for_each = var.enable_role_based_access_control && var.rbac_aad_managed ? ["rbac"] : []
+    content {
+      managed                = true
+      admin_group_object_ids = length(var.rbac_aad_admin_group) == 0 ? var.rbac_aad_admin_group : data.azuread_group.main[*].id
+      azure_rbac_enabled     = var.azure_rbac_enabled
     }
   }
 
@@ -159,7 +170,6 @@ resource "azurerm_kubernetes_cluster" "main" {
       default_node_pool[0].node_count, tags, linux_profile.0.ssh_key
     ]
   }
-
 }
 
 resource "azurerm_kubernetes_cluster_node_pool" "windows" {
@@ -174,7 +184,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "windows" {
   enable_auto_scaling   = var.enable_windows_auto_scaling
   max_count             = var.enable_windows_auto_scaling ? var.max_default_windows_node_count : null
   min_count             = var.enable_windows_auto_scaling ? var.min_default_windows_node_count : null
-  availability_zones    = var.availability_zones
+  zones                 = var.availability_zones
   max_pods              = var.max_default_windows_pod_count
   node_taints           = ["os=windows:NoSchedule"]
   os_type               = "Windows"
@@ -192,15 +202,25 @@ resource "azurerm_kubernetes_cluster_node_pool" "system" {
   enable_auto_scaling   = var.enable_system_auto_scaling
   max_count             = var.enable_system_auto_scaling ? var.max_default_system_node_count : null
   min_count             = var.enable_system_auto_scaling ? var.min_default_system_node_count : null
-  availability_zones    = var.availability_zones
+  zones                 = var.availability_zones
   max_pods              = var.max_default_system_pod_count
   node_taints           = ["CriticalAddonsOnly=true:NoSchedule"]
   mode                  = "System"
 }
 
-
-data "azurerm_log_analytics_workspace" "main" {
-  count               = var.oms_agent_enabled ? 1 : 0
-  name                = var.log_analytics_workspace_name
-  resource_group_name = var.log_analytics_resource_group
+provider "azurerm" {
+  features {
+    log_analytics_workspace {
+      permanently_delete_on_destroy = true
+    }
+    resource_group {
+      prevent_deletion_if_contains_resources = true
+    }
+    key_vault {
+      purge_soft_delete_on_destroy               = true
+      purge_soft_deleted_secrets_on_destroy      = true
+      purge_soft_deleted_certificates_on_destroy = true
+    }
+  }
+  skip_provider_registration = true
 }
