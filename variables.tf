@@ -113,22 +113,16 @@ variable "system_only" {
   default     = false
 }
 
-variable "oms_agent_enabled" {
-  description = "Deploy the OMS Agent to this Kubernetes Cluster"
-  type        = bool
-  default     = true
-}
-
 variable "log_analytics_workspace_name" {
   description = "(Optional) The name of the Analytics workspace"
   type        = string
-  default     = null
+  default     = "demo-la-workspace"
 }
 
 variable "log_analytics_resource_group" {
   description = "The resource group name of the Analytics workspace"
   type        = string
-  default     = null
+  default     = "demo-la-rsg"
 }
 
 variable "log_retention_in_days" {
@@ -158,7 +152,7 @@ variable "vnet_subnet_id" {
 variable "load_balancer_sku" {
   description = "(Optional) Specifies the SKU of the Load Balancer used for this Kubernetes Cluster. Possible values are Basic and Standard. Defaults to Standard."
   type        = string
-  default     = "Standard"
+  default     = "standard"
 }
 
 variable "os_disk_size_gb" {
@@ -341,4 +335,10 @@ variable "kubelet_log_max_size_mb" {
   description = "Kubelet config: Specifies the maximum size in MB of container log file before it is rotated"
   type        = number
   default     = 10
+}
+
+variable "log_analytics_workspace_sku" {
+    description = "log_analytics_workspace sku"
+    type = string
+    default = "PerGB2018"
 }
