@@ -47,6 +47,11 @@ output "kube_config_raw" {
   sensitive = true
 }
 
+output "http_application_routing_zone_name" {
+  #value = length(azurerm_kubernetes_cluster.main.addon_profile) > 0 && length(azurerm_kubernetes_cluster.main.addon_profile[0].http_application_routing) > 0 ? azurerm_kubernetes_cluster.main.addon_profile[0].http_application_routing[0].http_application_routing_zone_name : ""
+  value = azurerm_kubernetes_cluster.main.http_application_routing_enabled ? azurerm_kubernetes_cluster.main.http_application_routing_zone_name : ""
+}
+
 output "system_assigned_identity" {
   value = azurerm_kubernetes_cluster.main.identity
 }
@@ -77,4 +82,9 @@ output "admin_username" {
 
 output "admin_password" {
   value = length(azurerm_kubernetes_cluster.main.kube_admin_config) > 0 ? azurerm_kubernetes_cluster.main.kube_admin_config.0.password : ""
+}
+
+#To Edit  key_vault_secrets_provider
+output "key_vault_secrets_provider_identity" {
+  value = length(azurerm_kubernetes_cluster.main.key_vault_secrets_provider) > 0 ? azurerm_kubernetes_cluster.main.key_vault_secrets_provider.0.secret_identity.0.object_id : ""
 }
