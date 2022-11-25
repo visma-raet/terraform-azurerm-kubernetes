@@ -17,31 +17,12 @@ data "azurerm_resource_group" "rgrp" {
 }
 
 resource "azurerm_resource_group" "rg" {
-  #ts:skip=AC_AZURE_0389 RSG lock should be skipped for now.
+  #ts:skip=accurics.azure.NS.272 RSG lock should be skipped for now.
   count    = var.create_resource_group ? 1 : 0
   name     = lower(var.resource_group_name)
   location = var.location
   tags     = merge({ "ResourceName" = format("%s", var.resource_group_name) }, var.tags, )
-}
 
-#---------------------------------------------------------
-# Log analytics workspace
-#---------------------------------------------------------
-
-resource "azurerm_resource_group" "rg_la" {
-  #ts:skip=AC_AZURE_0389 RSG lock should be skipped for now.
-  name     = lower(var.log_analytics_resource_group)
-  location = var.location
-  tags     = merge({ "ResourceName" = format("%s", var.log_analytics_resource_group) }, var.tags, )
-}
-
-resource "azurerm_log_analytics_workspace" "main" {
-  #ts:skip=AC_AZURE_0389 RSG lock should be skipped for now.
-  name                = var.log_analytics_workspace_name
-  location            = var.location
-  resource_group_name = azurerm_resource_group.rg_la.name
-  sku                 = var.log_analytics_workspace_sku
-  retention_in_days   = var.log_retention_in_days
 }
 
 #---------------------------------------------------------
@@ -111,9 +92,10 @@ resource "azurerm_kubernetes_cluster" "main" {
       os_disk_type                 = var.os_disk_type
       vnet_subnet_id               = var.vnet_subnet_id
       enable_auto_scaling          = var.enable_auto_scaling
+      # scale_down_mode              = var.default_scale_down_mode
       max_count                    = var.max_default_node_count
       min_count                    = var.min_default_node_count
-      availability_zones           = var.availability_zones
+      zones                        = var.availability_zones
       max_pods                     = var.max_default_pod_count
       type                         = "VirtualMachineScaleSets"
       only_critical_addons_enabled = var.system_only
@@ -121,39 +103,71 @@ resource "azurerm_kubernetes_cluster" "main" {
   }
 
   linux_profile {
-    admin_username = "k8s"
+    admin_username = "k8sadmin"
 
     ssh_key {
       key_data = replace(var.public_ssh_key == "" ? tls_private_key.ssh.public_key_openssh : var.public_ssh_key, "\n", "")
     }
   }
 
-  oms_agent {
-    log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
-  }
-
+  #********** Addons section **************
+  # HTTP Application Routing disabled
   http_application_routing_enabled = false
 
-  dynamic "ingress_application_gateway" {
-    for_each = (var.create_ingress && var.gateway_id != null) ? [true] : []
+  #Enable OMS agent for monitoring
+  dynamic "oms_agent" {
+    for_each = (var.oms_agent_enabled) ? [true] : []
     content {
-      gateway_id = var.gateway_id
+      log_analytics_workspace_id = var.oms_agent_enabled ? data.azurerm_log_analytics_workspace.main[0].id : null
     }
+
   }
 
+  #AGIC. Expose services (https://docs.microsoft.com/en-us/azure/application-gateway/ingress-controller-overview).
+  #An Application Gateway need to be present before.
+  dynamic "ingress_application_gateway" {
+      for_each = (var.create_ingress && var.gateway_id != null) ? [true] : []
+      content {
+        gateway_id = var.gateway_id
+      }
+  }
+
+  dynamic "key_vault_secrets_provider" {
+    for_each = (var.enable_vault_secret_csi == true) ? ["key_vault_secrets_provider"] : []
+    content {
+      secret_rotation_enabled = true
+    }
+  }
+  #Enable key vault provider
+  # key_vault_secrets_provider {
+  #   secret_rotation_enabled = true
+  # }
+
+
+
+
+
+  #****************************************
+
+
+
+  #Cluster created with SystemAssigned identity
   identity {
     type = "SystemAssigned"
   }
 
+  #Define Network profile
+  #Any Windows Node --> CNI | Just Only Linux omes --> kubenet
   network_profile {
-    #ts:skip=AC_AZURE_0158 This rule should be skipped for now.
+    #ts:skip=accurics.azure.NS.382 This rule should be skipped for now.
     load_balancer_sku = length(var.availability_zones) == 0 && var.windows_node_pool_enabled == false ? var.load_balancer_sku : "standard"
     network_plugin    = var.windows_node_pool_enabled ? "azure" : var.network_plugin
     network_policy    = var.network_policy
   }
 
-  role_based_access_control_enabled = var.enable_role_based_access_control
 
+  #RBAC definition
+  role_based_access_control_enabled = var.enable_role_based_access_control
   dynamic "azure_active_directory_role_based_access_control" {
     for_each = var.enable_role_based_access_control && var.rbac_aad_managed ? ["rbac"] : []
     content {
@@ -163,15 +177,20 @@ resource "azurerm_kubernetes_cluster" "main" {
     }
   }
 
+
+
   tags = merge({ "ResourceName" = lower(var.name) }, var.tags, )
 
   lifecycle {
+    #Ignore changes on tags, number of nodes in default one & public key
     ignore_changes = [
       default_node_pool[0].node_count, tags, linux_profile.0.ssh_key
     ]
   }
+
 }
 
+#Define Node pools based on Windows
 resource "azurerm_kubernetes_cluster_node_pool" "windows" {
   count                 = var.windows_node_pool_enabled ? 1 : 0
   kubernetes_cluster_id = azurerm_kubernetes_cluster.main.id
@@ -182,14 +201,19 @@ resource "azurerm_kubernetes_cluster_node_pool" "windows" {
   os_disk_type          = var.windows_os_disk_type
   vnet_subnet_id        = var.vnet_subnet_id
   enable_auto_scaling   = var.enable_windows_auto_scaling
+  scale_down_mode       = var.windows_scale_down_mode
   max_count             = var.enable_windows_auto_scaling ? var.max_default_windows_node_count : null
   min_count             = var.enable_windows_auto_scaling ? var.min_default_windows_node_count : null
   zones                 = var.availability_zones
   max_pods              = var.max_default_windows_pod_count
+  enable_node_public_ip = var.enable_node_public_ip
   node_taints           = ["os=windows:NoSchedule"]
   os_type               = "Windows"
+  os_sku                = var.windows_os_sku
 }
 
+
+#SYSTEM NODE POOL pools based on Linux
 resource "azurerm_kubernetes_cluster_node_pool" "system" {
   count                 = var.system_node_pool_enabled ? 1 : 0
   kubernetes_cluster_id = azurerm_kubernetes_cluster.main.id
@@ -208,19 +232,11 @@ resource "azurerm_kubernetes_cluster_node_pool" "system" {
   mode                  = "System"
 }
 
-provider "azurerm" {
-  features {
-    log_analytics_workspace {
-      permanently_delete_on_destroy = true
-    }
-    resource_group {
-      prevent_deletion_if_contains_resources = true
-    }
-    key_vault {
-      purge_soft_delete_on_destroy               = true
-      purge_soft_deleted_secrets_on_destroy      = true
-      purge_soft_deleted_certificates_on_destroy = true
-    }
-  }
-  skip_provider_registration = true
+data "azurerm_log_analytics_workspace" "main" {
+  count               = var.oms_agent_enabled ? 1 : 0
+  name                = var.log_analytics_workspace_name
+  resource_group_name = var.log_analytics_resource_group
 }
+
+
+

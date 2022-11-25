@@ -26,7 +26,7 @@ variable "prefix" {
 variable "default_vm_size" {
   description = "The size of the Virtual Machine, such as Standard_D2s_V4"
   type        = string
-  default     = "Standard_D2ds_v4"
+  default     = "Standard_D4s_v3"
 }
 
 variable "availability_zones" {
@@ -43,6 +43,12 @@ variable "sku_tier" {
 
 variable "private_cluster_enabled" {
   description = "If true cluster API server will be exposed only on internal IP address and available only in cluster vnet."
+  type        = bool
+  default     = false
+}
+
+variable "enable_node_public_ip" {
+  description = "Should each node have a Public IP Address?."
   type        = bool
   default     = false
 }
@@ -113,16 +119,22 @@ variable "system_only" {
   default     = false
 }
 
+variable "oms_agent_enabled" {
+  description = "Deploy the OMS Agent to this Kubernetes Cluster"
+  type        = bool
+  default     = true
+}
+
 variable "log_analytics_workspace_name" {
   description = "(Optional) The name of the Analytics workspace"
   type        = string
-  default     = "demo-la-workspace"
+  default     = null
 }
 
 variable "log_analytics_resource_group" {
   description = "The resource group name of the Analytics workspace"
   type        = string
-  default     = "demo-la-rsg"
+  default     = null
 }
 
 variable "log_retention_in_days" {
@@ -158,7 +170,7 @@ variable "load_balancer_sku" {
 variable "os_disk_size_gb" {
   description = "Disk size of nodes in GBs."
   type        = number
-  default     = 50
+  default     = 100
 }
 
 variable "os_disk_type" {
@@ -166,6 +178,7 @@ variable "os_disk_type" {
   type        = string
   default     = "Ephemeral"
 }
+
 
 variable "enable_role_based_access_control" {
   description = "Enable Role Based Access Control."
@@ -206,7 +219,7 @@ variable "windows_pool_name" {
 variable "windows_vm_size" {
   description = "The size of the Windows Virtual Machine, such as Standard_D2s_V4"
   type        = string
-  default     = "Standard_D2ds_v4"
+  default     = "Standard_D4s_v3"
 }
 
 variable "windows_node_count" {
@@ -218,14 +231,41 @@ variable "windows_node_count" {
 variable "windows_os_disk_size_gb" {
   description = "Disk size of nodes in GBs."
   type        = number
-  default     = 50
+  default     = 100
 }
 
 variable "windows_os_disk_type" {
-  description = "The type of disk which should be used for the Operating System."
+  description = <<EOT
+   The type of disk which should be used for the Operating System
+
+  Options:
+  - Ephemeral
+  - Managed
+
+  EOT
   type        = string
   default     = "Ephemeral"
 }
+
+variable "windows_os_sku" {
+  description = <<EOT
+   Specifies the OS SKU used by the windows agent pool.
+
+  Options:
+  - Windows2019
+  - Windows2022
+
+  EOT
+  type        = string
+  default     = "Windows2022"
+}
+
+variable "windows_scale_down_mode" {
+  description = "Specifies how the node pool should deal with scaled-down nodes.."
+  type        = string
+  default     = "Delete"
+}
+
 
 variable "enable_windows_auto_scaling" {
   description = "Enable Windows node pool autoscaling"
@@ -249,6 +289,12 @@ variable "max_default_pod_count" {
   description = "(Optional) The maximum number of pods that can run on each agent. Changing this forces a new resource to be created."
   type        = number
   default     = 30
+}
+
+variable "default_scale_down_mode" {
+  description = "Specifies how the node pool should deal with scaled-down nodes.."
+  type        = string
+  default     = "Delete"
 }
 
 variable "max_default_windows_pod_count" {
@@ -337,8 +383,12 @@ variable "kubelet_log_max_size_mb" {
   default     = 10
 }
 
-variable "log_analytics_workspace_sku" {
-    description = "log_analytics_workspace sku"
-    type = string
-    default = "PerGB2018"
+
+variable "enable_vault_secret_csi" {
+  description = "Enable the CSi provider for Azure KeyVault"
+  type        = bool
+  default     = true
 }
+
+
+
