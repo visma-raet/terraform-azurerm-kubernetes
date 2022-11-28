@@ -86,12 +86,12 @@ resource "azurerm_kubernetes_cluster" "main" {
         container_log_max_line    = var.kubelet_log_max_line
         container_log_max_size_mb = var.kubelet_log_max_size_mb
       }
-      name                         = var.node_pool_name
-      vm_size                      = var.default_vm_size
-      os_disk_size_gb              = var.os_disk_size_gb
-      os_disk_type                 = var.os_disk_type
-      vnet_subnet_id               = var.vnet_subnet_id
-      enable_auto_scaling          = var.enable_auto_scaling
+      name                = var.node_pool_name
+      vm_size             = var.default_vm_size
+      os_disk_size_gb     = var.os_disk_size_gb
+      os_disk_type        = var.os_disk_type
+      vnet_subnet_id      = var.vnet_subnet_id
+      enable_auto_scaling = var.enable_auto_scaling
       # scale_down_mode              = var.default_scale_down_mode
       max_count                    = var.max_default_node_count
       min_count                    = var.min_default_node_count
@@ -118,7 +118,7 @@ resource "azurerm_kubernetes_cluster" "main" {
   dynamic "oms_agent" {
     for_each = (var.oms_agent_enabled) ? [true] : []
     content {
-      log_analytics_workspace_id = var.oms_agent_enabled ? data.azurerm_log_analytics_workspace.main[0].id : null
+      log_analytics_workspace_id = var.oms_agent_enabled ? (var.create_log_analytics_workspace ? resource.azurerm_log_analytics_workspace.main[0].id : data.azurerm_log_analytics_workspace.main[0].id) : null
     }
 
   }
@@ -126,10 +126,10 @@ resource "azurerm_kubernetes_cluster" "main" {
   #AGIC. Expose services (https://docs.microsoft.com/en-us/azure/application-gateway/ingress-controller-overview).
   #An Application Gateway need to be present before.
   dynamic "ingress_application_gateway" {
-      for_each = (var.create_ingress && var.gateway_id != null) ? [true] : []
-      content {
-        gateway_id = var.gateway_id
-      }
+    for_each = (var.create_ingress && var.gateway_id != null) ? [true] : []
+    content {
+      gateway_id = var.gateway_id
+    }
   }
 
   dynamic "key_vault_secrets_provider" {
@@ -138,18 +138,6 @@ resource "azurerm_kubernetes_cluster" "main" {
       secret_rotation_enabled = true
     }
   }
-  #Enable key vault provider
-  # key_vault_secrets_provider {
-  #   secret_rotation_enabled = true
-  # }
-
-
-
-
-
-  #****************************************
-
-
 
   #Cluster created with SystemAssigned identity
   identity {
@@ -177,8 +165,6 @@ resource "azurerm_kubernetes_cluster" "main" {
     }
   }
 
-
-
   tags = merge({ "ResourceName" = lower(var.name) }, var.tags, )
 
   lifecycle {
@@ -187,7 +173,6 @@ resource "azurerm_kubernetes_cluster" "main" {
       default_node_pool[0].node_count, tags, linux_profile.0.ssh_key
     ]
   }
-
 }
 
 #Define Node pools based on Windows
@@ -233,10 +218,31 @@ resource "azurerm_kubernetes_cluster_node_pool" "system" {
 }
 
 data "azurerm_log_analytics_workspace" "main" {
-  count               = var.oms_agent_enabled ? 1 : 0
+  count               = var.create_log_analytics_workspace == false ? 1 : 0
   name                = var.log_analytics_workspace_name
-  resource_group_name = var.log_analytics_resource_group
+  resource_group_name = lower(var.log_analytics_resource_group)
 }
 
+resource "azurerm_log_analytics_workspace" "main" {
+  count               = var.create_log_analytics_workspace ? 1 : 0
+  name                = var.log_analytics_workspace_name
+  resource_group_name = lower(var.log_analytics_resource_group)
+  location            = var.location
+}
 
-
+provider "azurerm" {
+  features {
+    log_analytics_workspace {
+      permanently_delete_on_destroy = true
+    }
+    resource_group {
+      prevent_deletion_if_contains_resources = true
+    }
+    key_vault {
+      purge_soft_delete_on_destroy               = true
+      purge_soft_deleted_secrets_on_destroy      = true
+      purge_soft_deleted_certificates_on_destroy = true
+    }
+  }
+  skip_provider_registration = true
+}

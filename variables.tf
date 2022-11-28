@@ -128,13 +128,19 @@ variable "oms_agent_enabled" {
 variable "log_analytics_workspace_name" {
   description = "(Optional) The name of the Analytics workspace"
   type        = string
-  default     = null
+  default     = "log-analytics-ws"
 }
 
 variable "log_analytics_resource_group" {
   description = "The resource group name of the Analytics workspace"
   type        = string
-  default     = null
+  default     = "rg-demo-westeurope-01"
+}
+
+variable "create_log_analytics_workspace" {
+  description = "Whether to create log analytics workspace"
+  type        = bool
+  default     = true
 }
 
 variable "log_retention_in_days" {
@@ -389,6 +395,3 @@ variable "enable_vault_secret_csi" {
   type        = bool
   default     = true
 }
-
-
-
