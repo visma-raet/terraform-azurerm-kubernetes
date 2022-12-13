@@ -131,24 +131,6 @@ variable "oms_agent_enabled" {
   default     = true
 }
 
-variable "log_analytics_workspace_name" {
-  description = "(Optional) The name of the Analytics workspace"
-  type        = string
-  default     = "log-analytics-ws"
-}
-
-variable "log_analytics_resource_group" {
-  description = "The resource group name of the Analytics workspace"
-  type        = string
-  default     = "rg-demo-westeurope-01"
-}
-
-variable "create_log_analytics_workspace" {
-  description = "Whether to create log analytics workspace"
-  type        = bool
-  default     = true
-}
-
 variable "log_retention_in_days" {
   description = "The retention period for the logs in days. The expected value should be between 30 to 730"
   type        = number
