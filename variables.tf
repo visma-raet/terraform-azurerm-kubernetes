@@ -47,6 +47,12 @@ variable "private_cluster_enabled" {
   default     = false
 }
 
+variable "kubernetes_version" {
+    description = "If supplied will use the version"
+    type = string
+    default = "1.24.6"
+}
+
 variable "enable_node_public_ip" {
   description = "Should each node have a Public IP Address?."
   type        = bool

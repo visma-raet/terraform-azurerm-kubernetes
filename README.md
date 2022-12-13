@@ -47,6 +47,7 @@ module "aks" {
   enable_auto_scaling       = true
   max_default_node_count    = 3
   min_default_node_count    = 1
+  kubernetes_version        = 1.24.6
 }
 
 resource "azurerm_role_assignment" "aks_resource_group" {
