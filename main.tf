@@ -46,6 +46,7 @@ data "azuread_group" "main" {
 #---------------------------------------------------------
 # Kubernetes Creation or selection
 #---------------------------------------------------------
+#tfsec:ignore:azure-container-logging
 resource "azurerm_kubernetes_cluster" "main" {
   name                            = lower(var.name)
   location                        = local.location
@@ -207,21 +208,4 @@ resource "azurerm_kubernetes_cluster_node_pool" "system" {
   max_pods              = var.max_default_system_pod_count
   node_taints           = ["CriticalAddonsOnly=true:NoSchedule"]
   mode                  = "System"
-}
-
-provider "azurerm" {
-  features {
-    log_analytics_workspace {
-      permanently_delete_on_destroy = true
-    }
-    resource_group {
-      prevent_deletion_if_contains_resources = false
-    }
-    key_vault {
-      purge_soft_delete_on_destroy               = true
-      purge_soft_deleted_secrets_on_destroy      = true
-      purge_soft_deleted_certificates_on_destroy = true
-    }
-  }
-  skip_provider_registration = true
 }
