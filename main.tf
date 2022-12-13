@@ -221,13 +221,13 @@ resource "azurerm_kubernetes_cluster_node_pool" "system" {
 data "azurerm_log_analytics_workspace" "main" {
   count               = var.create_log_analytics_workspace == false ? 1 : 0
   name                = var.log_analytics_workspace_name
-  resource_group_name = lower(var.resource_group_name)
+  resource_group_name = lower(local.resource_group_name)
 }
 
 resource "azurerm_log_analytics_workspace" "main" {
   count               = var.create_log_analytics_workspace ? 1 : 0
   name                = var.log_analytics_workspace_name
-  resource_group_name = lower(var.resource_group_name)
+  resource_group_name = lower(local.resource_group_name)
   location            = var.location
 }
 
@@ -237,7 +237,7 @@ provider "azurerm" {
       permanently_delete_on_destroy = true
     }
     resource_group {
-      prevent_deletion_if_contains_resources = true
+      prevent_deletion_if_contains_resources = false
     }
     key_vault {
       purge_soft_delete_on_destroy               = true
