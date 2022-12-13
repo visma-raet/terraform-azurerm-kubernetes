@@ -115,15 +115,6 @@ resource "azurerm_kubernetes_cluster" "main" {
   # HTTP Application Routing disabled
   http_application_routing_enabled = false
 
-  #Enable OMS agent for monitoring
-  dynamic "oms_agent" {
-    for_each = (var.oms_agent_enabled) ? [true] : []
-    content {
-      log_analytics_workspace_id = var.oms_agent_enabled ? (var.create_log_analytics_workspace ? resource.azurerm_log_analytics_workspace.main[0].id : data.azurerm_log_analytics_workspace.main[0].id) : null
-    }
-
-  }
-
   #AGIC. Expose services (https://docs.microsoft.com/en-us/azure/application-gateway/ingress-controller-overview).
   #An Application Gateway need to be present before.
   dynamic "ingress_application_gateway" {
@@ -216,19 +207,6 @@ resource "azurerm_kubernetes_cluster_node_pool" "system" {
   max_pods              = var.max_default_system_pod_count
   node_taints           = ["CriticalAddonsOnly=true:NoSchedule"]
   mode                  = "System"
-}
-
-data "azurerm_log_analytics_workspace" "main" {
-  count               = var.create_log_analytics_workspace == false ? 1 : 0
-  name                = var.log_analytics_workspace_name
-  resource_group_name = lower(local.resource_group_name)
-}
-
-resource "azurerm_log_analytics_workspace" "main" {
-  count               = var.create_log_analytics_workspace ? 1 : 0
-  name                = var.log_analytics_workspace_name
-  resource_group_name = lower(local.resource_group_name)
-  location            = var.location
 }
 
 provider "azurerm" {
