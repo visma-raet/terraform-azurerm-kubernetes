@@ -105,7 +105,7 @@ resource "azurerm_kubernetes_cluster" "main" {
   }
 
   linux_profile {
-    admin_username = "k8sadmin"
+    admin_username = "k8s"
 
     ssh_key {
       key_data = replace(var.public_ssh_key == "" ? tls_private_key.ssh.public_key_openssh : var.public_ssh_key, "\n", "")
@@ -122,13 +122,6 @@ resource "azurerm_kubernetes_cluster" "main" {
     for_each = (var.create_ingress && var.gateway_id != null) ? [true] : []
     content {
       gateway_id = var.gateway_id
-    }
-  }
-
-  dynamic "key_vault_secrets_provider" {
-    for_each = (var.enable_vault_secret_csi == true) ? ["key_vault_secrets_provider"] : []
-    content {
-      secret_rotation_enabled = true
     }
   }
 
