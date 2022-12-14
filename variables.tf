@@ -53,12 +53,6 @@ variable "kubernetes_version" {
     default = "1.24.6"
 }
 
-variable "enable_node_public_ip" {
-  description = "Should each node have a Public IP Address?."
-  type        = bool
-  default     = false
-}
-
 variable "authorized_ips" {
   description = "A list of IP addresses to allow to connect to the cluster."
   type        = list(string)
