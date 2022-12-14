@@ -172,14 +172,12 @@ resource "azurerm_kubernetes_cluster_node_pool" "windows" {
   os_disk_type          = var.windows_os_disk_type
   vnet_subnet_id        = var.vnet_subnet_id
   enable_auto_scaling   = var.enable_windows_auto_scaling
-  scale_down_mode       = var.windows_scale_down_mode
   max_count             = var.enable_windows_auto_scaling ? var.max_default_windows_node_count : null
   min_count             = var.enable_windows_auto_scaling ? var.min_default_windows_node_count : null
   zones                 = var.availability_zones
   max_pods              = var.max_default_windows_pod_count
   node_taints           = ["os=windows:NoSchedule"]
   os_type               = "Windows"
-  os_sku                = var.windows_os_sku
 }
 
 

@@ -235,26 +235,6 @@ variable "windows_os_disk_type" {
   default     = "Ephemeral"
 }
 
-variable "windows_os_sku" {
-  description = <<EOT
-   Specifies the OS SKU used by the windows agent pool.
-
-  Options:
-  - Windows2019
-  - Windows2022
-
-  EOT
-  type        = string
-  default     = "Windows2022"
-}
-
-variable "windows_scale_down_mode" {
-  description = "Specifies how the node pool should deal with scaled-down nodes.."
-  type        = string
-  default     = "Delete"
-}
-
-
 variable "enable_windows_auto_scaling" {
   description = "Enable Windows node pool autoscaling"
   type        = bool
